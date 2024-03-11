@@ -112,7 +112,7 @@ class _welcomeScreenState extends State<welcomeScreen>
                   Expanded(
                     flex: 1,
                     child: Text(
-                      'Lets make it Safier',
+                      "Don't Panic! ResqU with U always safier",
                       style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,

@@ -1,11 +1,99 @@
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
+import 'package:resqu/components.dart';
+import 'package:vibration/vibration.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:camera/camera.dart';
 
-import '../components.dart';
+class homeScreen extends StatefulWidget {
+  final String userName = "Abdelrahman Mohamed"; // Example user name
 
-class homeScreen extends StatelessWidget {
-  final String userName = "John Doe"; // Example user name
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<homeScreen> {
+  late CameraController _controller;
+  late Future<void> _initializeControllerFuture;
+  bool _isAlarmOn = false;
+  late Timer _flashTimer;
+  bool _flashOn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Get the list of available cameras.
+    availableCameras().then((cameras) {
+      if (cameras.isNotEmpty) {
+        // Initialize the first camera
+        _controller = CameraController(cameras[0], ResolutionPreset.medium);
+        _initializeControllerFuture = _controller.initialize();
+      }
+    });
+    // Start listening to alarm changes
+    FirebaseFirestore.instance
+        .collection('alarm')
+        .doc('alarm_condition')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final isEmergency = snapshot.data()?['is_alarm_on'] ?? false;
+        setState(() {
+          _isAlarmOn = isEmergency;
+        });
+        if (isEmergency) {
+          // If alarm is on, start vibrating and flashing
+          startVibratingAndFlashing();
+        } else {
+          // If alarm is off, stop vibrating and flashing
+          stopVibratingAndFlashing();
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Dispose of the controller when the widget is disposed.
+    _controller.dispose();
+    _flashTimer.cancel(); // Cancel the flashing timer
+    super.dispose();
+  }
+
+  void startVibratingAndFlashing() async {
+    // Start vibration
+    Vibration.vibrate(duration: 99999999, repeat: 20000);
+
+
+    // Start flashing
+    _flashTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      if (_controller != null && _controller.value.isInitialized) {
+        toggleFlash();
+      }
+    });
+  }
+
+  void stopVibratingAndFlashing() {
+    // Stop vibration
+    Vibration.cancel();
+
+
+    // Stop flashing
+    _flashTimer.cancel();
+    if (_controller != null && _controller.value.isInitialized) {
+      _controller.setFlashMode(FlashMode.off);
+    }
+    _flashOn = false;
+  }
+
+  void toggleFlash() async {
+    _flashOn = !_flashOn;
+    await _controller.setFlashMode(
+        _flashOn ? FlashMode.torch : FlashMode.off);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +126,7 @@ class homeScreen extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          userName,
+                          widget.userName,
                           style: GoogleFonts.poppins(
                             fontSize: 20.0,
                             color: Colors.white,
@@ -70,7 +158,6 @@ class homeScreen extends StatelessWidget {
                         title: 'Notify List',
                         onPressed: () {
                           Navigator.pushNamed(context, 'noti');
-
                         },
                         width: 10,
                         height: 100,
@@ -98,10 +185,47 @@ class homeScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 20), // Add space below existing buttons
                 // Emergency Button
-
-                RoundedButtonSmall_Sharb(colour: Colors.red, title: 'Emergency Call', onPressed: () async {await FlutterPhoneDirectCaller.callNumber('+905528957541');
-                }, width: 0, height: 60,icon: Icons.call, iconColor: Colors.white, textcolor: Colors.white,),
-
+                RoundedButtonSmall_Sharb(
+                  colour: Colors.red,
+                  title: 'Emergency Call',
+                  onPressed: () async {
+                    await FlutterPhoneDirectCaller.callNumber('112');
+                  },
+                  width: 0,
+                  height: 60,
+                  icon: Icons.call,
+                  iconColor: Colors.white,
+                  textcolor: Colors.white,
+                ),
+                SizedBox(height: 20),
+                // Flashing and Vibrating Widget
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.5),
+                          spreadRadius: 5,
+                          blurRadius: 7,
+                          offset: Offset(0, 3), // changes position of shadow
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Text(
+                        _isAlarmOn ? 'Emergency' : 'Safe',
+                        style: GoogleFonts.poppins(
+                          fontSize: 35,
+                          color: _isAlarmOn ? Colors.red : Colors.green,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

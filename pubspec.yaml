@@ -39,6 +39,21 @@ dependencies:
   art_sweetalert: ^0.0.5
   modal_progress_hud_nsn: ^0.4.0
   flutter_phone_direct_caller: ^2.1.1
+  firebase_core: ^2.27.0
+  cloud_firestore: ^4.15.8
+  camera: ^0.10.5+9
+  vibration: ^1.8.4
+  firebase_auth: ^4.17.8
+  image_picker: ^0.8.4+2
+  firebase_database: ^10.4.9
+
+
+
+
+
+
+
+
 
 
 

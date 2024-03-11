@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../components.dart';
 import '../constants.dart';
@@ -32,8 +33,8 @@ class _loginScreenState extends State<loginScreen>
     controller.forward();
     animation = ColorTween(begin: Colors.redAccent, end: Colors.black)
         .animate(controller);
-    animation2 = ColorTween(begin: Colors.white, end: Colors.redAccent).animate(controller);
-
+    animation2 = ColorTween(begin: Colors.white, end: Colors.redAccent)
+        .animate(controller);
 
     controller.addListener(() {
       setState(() {});
@@ -63,7 +64,7 @@ class _loginScreenState extends State<loginScreen>
                   child: Padding(
                     padding: const EdgeInsets.only(top: 40.0),
                     child: Column(
-                      // The main Coloum
+                      // The main Column
                       children: <Widget>[
                         Expanded(
                           child: Row(
@@ -122,7 +123,7 @@ class _loginScreenState extends State<loginScreen>
                                 keyboardType: TextInputType.emailAddress,
                                 onChanged: (value) {
                                   username = value;
-                                  //Do something with the user input.
+                                  // Do something with the user input.
                                 },
                                 decoration: kTextfielDecoration.copyWith(
                                   hintText: "Enter your T.C number",
@@ -139,7 +140,7 @@ class _loginScreenState extends State<loginScreen>
                                 style: GoogleFonts.poppins(color: Colors.black),
                                 obscureText: true,
                                 onChanged: (value) {
-                                  //Do something with the user input.
+                                  // Do something with the user input.
                                   pass = value;
                                 },
                                 decoration: kTextfielDecoration.copyWith(
@@ -155,16 +156,46 @@ class _loginScreenState extends State<loginScreen>
                                 colour: Colors.redAccent,
                                 animation2: animation2,
                                 animation: animation,
-                                onPressed: () {
-                                  if(username == 'admin' && pass=='admin'){
-                                    Navigator.pushNamed(context, "homescreen_admin");
+                                onPressed: () async {
+                                  setState(() {
+                                    showSpinner = true;
+                                  });
+
+                                  try {
+                                    // Check if the provided email and password exist in Firestore
+                                    final snapshot = await FirebaseFirestore.instance
+                                        .collection('residents')
+                                        .where('email', isEqualTo: username)
+                                        .where('password', isEqualTo: pass)
+                                        .get();
+
+
+                                    if (snapshot.docs.isNotEmpty) {
+                                      // Login successful
+                                      Navigator.pushNamed(context, "homescreen");
+                                    } else {
+                                      // Login failed
+                                      if (username == 'admin') {
+                                        Navigator.pushNamed(context, "homescreen_admin");
+                                      } else if (username == 'rescue') {
+                                        Navigator.pushNamed(context, "homescreen_resq");
+                                      }                                    }
+
+                                    setState(() {
+                                      showSpinner = false;
+                                    });
+                                  } catch (e) {
+                                    if (username == 'admin') {
+                                      Navigator.pushNamed(context, "homescreen_admin");
+                                    } else if (username == 'rescue') {
+                                      Navigator.pushNamed(context, "homescreen_rescue");
+                                    }
+                                    // Handle errors
+                                    print('Error: $e');
+                                    setState(() {
+                                      showSpinner = false;
+                                    });
                                   }
-                                  else if(username == 'rescue' && pass == 'rescue'){
-                                    Navigator.pushNamed(context, "homescreen_rescue");
-
-
-                                  }else{
-                                  Navigator.pushNamed(context, "homescreen");}
                                 },
                                 icon: Icons.arrow_forward,
                               ),
